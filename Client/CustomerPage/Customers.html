@@ -1,0 +1,187 @@
+<html>
+  <body onload="getAllCustomers()">
+    <h1>Customers Page!</h1>
+    <button onclick="location.href='../MainPAge.html'">Home Page</button>
+
+    <table border="1" id="tbl">
+      <tr>
+        <th>Full Name:</th>
+        <th>Products:</th>
+        <th>Purchased Dates:</th>
+      </tr>
+    </table>
+    <br />
+
+    <button onclick="buyProduct()">BUY PRODUCT!</button>
+    <div id="buyProductBox" style="display: none;">
+      USER:<select id="users"></select>
+      PRODUCT:<select id="products"></select>
+      <button id="BuyButton">Buy</button>
+    </div>
+
+    <script>
+      async function getAllCustomers() {
+        // get all customers from customers DB:
+        const resp = await fetch(`http://127.0.0.1:5000/customers`);
+        const customers = await resp.json();
+        const tbl = document.getElementById("tbl");
+        const usersNames = []; //'Buy product' BTN
+        const productsNames = []; //'Buy product' BTN
+        const purchasesArr = []; //'Buy product' BTN
+        // _______________________________________________________CUSTOMER_REGION_1:
+        customers.forEach(async (C) => {
+
+          usersNames.push({ name: C.First_Name, id: C.ID }); //'Buy product' BTN
+
+          // get all customers Purchases by customer ID:
+          const CmidData = await fetch(
+            `http://127.0.0.1:5000/purchases/customer/${C.ID}`
+          );
+          const Purchases = await CmidData.json();
+
+
+          //Create elements to the tbl for every customers data:
+          const tr = document.createElement("tr");
+
+          const FNtd = document.createElement("td"); //Full Name
+          const FullName = document.createElement("p"); //Full Name
+
+          const ProdTd = document.createElement("td"); //Products
+          const ProductUl = document.createElement("ul"); //Products
+
+          const PurchTd = document.createElement("td"); //Purchases
+          const PurchUl = document.createElement("ul"); //Purchases
+
+          // -Full Name Column data:
+          FullName.innerText = `${C.First_Name}, ${C.Last_Name}`; //Full Name
+          if(Purchases != 'no result'){
+
+            // -Products Column list:
+            products = Purchases.map((p) => p.productID);
+
+          // get Each products name from products DB by its id:
+          products.forEach(async (id) => {
+            const li = document.createElement("li");
+            const resp = await fetch(`http://127.0.0.1:5000/products/${id}`);
+            const product = await resp.json();
+            purchasesArr.push(product.Name); //'Buy product' BTN
+
+            li.innerText = product.Name;
+            li.onclick = () => {
+              localStorage["productID"] = +id;
+              window.location.href = "../ProductPage/EditProduct.html";
+            };
+            ProductUl.appendChild(li);
+          });
+          
+            // -Purchased Dates Column list:
+            DateLi = Purchases.map((D) => D.Date);
+            
+            DateLi.forEach((D) => {
+              const li = document.createElement("li");
+              li.innerText = D;
+              
+              PurchUl.appendChild(li);
+            });
+            
+          }else{
+            const li = document.createElement("li");
+            li.innerText = 'no purchases'
+            PurchUl.appendChild(li)
+          }
+          // APPENDING:
+          FNtd.appendChild(FullName);
+          tr.appendChild(FNtd);
+
+          ProdTd.appendChild(ProductUl);
+          tr.appendChild(ProdTd);
+
+          PurchTd.appendChild(PurchUl);
+          tr.appendChild(PurchTd);
+
+          tbl.appendChild(tr);
+        });
+        // _______________________________________________________CUSTOMER_REGION_2:
+        // _BUY PRODUCT REGION_
+        // Get all Products DATA from DB:
+        const ProductResp = await fetch("http://127.0.0.1:5000/products");
+        const productsArr = await ProductResp.json();
+
+        const productsSelect = document.getElementById("products");
+        const usersSelect = document.getElementById("users");
+        const BuyButton = document.getElementById("BuyButton");
+
+        // Insert products names into the PRODUCTS SELECT:
+        productsArr.forEach((p) => {
+          productsNames.push({ name: p.Name, id: p.ID }); //'Buy product' BTN
+
+          const nameOp = document.createElement("option");
+          nameOp.innerText = p.Name;
+          productsSelect.appendChild(nameOp);
+        });
+
+        // Insert users names into the USERS SELECT:
+        usersNames.forEach((u) => {
+          const nameOp = document.createElement("option");
+          nameOp.innerText = u.name;
+          usersSelect.appendChild(nameOp);
+        });
+
+        // Buy Button Function:
+        BuyButton.onclick = async () => {
+          // GET FULL DATE:________
+          const day = new Date().getDate();
+          const month = new Date().getMonth() + 1;
+          const year = new Date().getFullYear();
+          const currentDate = `${year}-${month}-${day}`;
+          // _______________________
+
+          // Filter the product ID by its name:
+          let pId = productsNames.filter((p) =>
+            p.name == productsSelect.value ? p.id : null
+          );
+
+          // Filter the User ID by its name:
+          let uId = usersNames.filter((u) =>
+            u.name == usersSelect.value ? u.id : null
+          );
+
+          // Insert the Purchases Data to an Object
+          const purchase = {
+            Date: currentDate,
+            ID: +purchasesArr.length + 1,
+            customerID: +uId[0].id,
+            productID: +pId[0].id,
+          };
+          const fetchParamsPost = {
+            method: "POST",
+            body: JSON.stringify(purchase),
+            headers: { "Content-type": "application/json" },
+          };
+
+          const midDataPost = await fetch(
+            `http://127.0.0.1:5000/purchases/`,
+            fetchParamsPost
+          );
+          const statusPost = await midDataPost.json();
+
+          console.log(statusPost);
+          location.reload();
+        };
+      }
+      let flag = true
+      function buyProduct(){
+        const buyProductBox = document.getElementById("buyProductBox");
+        if(flag){
+          buyProductBox.style.display = 'block'
+          flag =!flag
+        }else {
+          buyProductBox.style.display = 'none'
+          flag =!flag
+        }
+        
+        
+      }
+    </script>
+  </body>
+</html>

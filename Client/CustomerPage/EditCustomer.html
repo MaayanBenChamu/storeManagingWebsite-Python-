@@ -1,0 +1,117 @@
+<html>
+  <body onload="editCustomer()">
+    <h1>Edit Customer Page</h1>
+    <button onclick="location.href='../MainPAge.html'">Home Page</button>
+
+    <div id="editCustomer">
+      <div id="editContainer">
+        First Name: <input type="text" id="Fname" /><br />
+        Last Name: <input type="text" id="Lname" /><br />
+        City: <input type="text" id="City" /><br />
+      </div>
+      <button onclick="DeleteCustomer()">Delete Customer</button>
+      <button onclick="UpdateCustomer()">Update Customer</button>
+      <button onclick="location.href='Customers.html'">Customers Page</button>
+      <button onclick="location.href='../ProductPage/Products.html'">Products Page</button>
+    </div>
+
+    <div id="custPurchased">
+      <ul id="PurchasedList"></ul>
+    </div>
+
+    <script>
+      async function editCustomer() {
+        const CustomerID = localStorage.getItem("CustomerID");
+        const midData = await fetch(
+          `http://127.0.0.1:5000/customers/${CustomerID}`
+        );
+        const Customer = await midData.json();
+
+        // get elements::
+        const editCustomer = document.getElementById("editCustomer");
+        const editContainer = document.getElementById("editContainer");
+        const Fname = document.getElementById("Fname");
+        const Lname = document.getElementById("Lname");
+        const City = document.getElementById("City");
+
+        // Insert data info from WS:
+        Fname.value = Customer.First_Name;
+        Lname.value = Customer.Last_Name;
+        City.value = Customer.City;
+
+        // The Customer list of purchased products. (Region 2):
+        // get all the purchased products-id by customer ID
+        const midData2 = await fetch(
+          `http://127.0.0.1:5000/purchases/customer/${CustomerID}`
+          );
+          const Customer2 = await midData2.json();
+          const PurchasedList = document.getElementById("PurchasedList");
+          
+          products = Customer2.map((p) => p.productID);
+          
+        // get Each products name from products db by its id:
+        products.forEach(async (id) => {
+          const li = document.createElement("li");
+          const resp = await fetch(`http://127.0.0.1:5000/products/${id}`);
+          const product = await resp.json();
+
+          li.innerText = product.Name;
+          li.onclick = ()=>{
+            localStorage["productID"] = +id;
+            window.location.href = "../ProductPage/EditProduct.html";
+          }
+          PurchasedList.appendChild(li);
+        });
+      }
+
+      async function UpdateCustomer() {
+        const CustomerID = localStorage.getItem("CustomerID");
+        const Fname = document.getElementById("Fname");
+        const Lname = document.getElementById("Lname");
+        const City = document.getElementById("City");
+
+        const Obj = {
+          ID: +CustomerID,
+          First_Name: Fname.value,
+          Last_Name: Lname.value,
+          City: City.value,
+        };
+        const fetchParams = {
+          method: "PUT",
+          body: JSON.stringify(Obj),
+          headers: { "Content-type": "application/json" },
+        };
+
+        const midData = await fetch(
+          `http://127.0.0.1:5000/customers/${CustomerID}`,
+          fetchParams
+        );
+        const status = await midData.json();
+      }
+      async function DeleteCustomer() {
+        // Deleting a customer:
+        const CustomerID = localStorage.getItem("CustomerID");
+        const fetchParams = {
+          method: "DELETE",
+          headers: {
+            "Content-type": "application/json; charset=UTF-8",
+          },
+        };
+        const midData = await fetch(
+          `http://127.0.0.1:5000/customers/${CustomerID}`,
+          fetchParams
+        );
+        const status = await midData.json();
+
+        // remove all related data from the “Purchased” table in the DB
+        const midData2 = await fetch(
+          `http://127.0.0.1:5000/purchases/customer/${CustomerID}`,
+          fetchParams
+        );
+        const status2 = await midData2.json();
+
+        location.reload();
+      }
+    </script>
+  </body>
+</html>

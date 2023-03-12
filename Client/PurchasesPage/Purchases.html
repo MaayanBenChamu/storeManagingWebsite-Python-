@@ -1,0 +1,180 @@
+<html>
+  <body onload="getData()">
+    <h1>Purchases Page!</h1>
+    <button onclick="location.href='../MainPAge.html'">Home Page</button>
+    <br />
+    <br />
+    <table id="table" border="1">
+      <tr>
+        <th>
+          USER:<select id="users">
+            <option value="value" selected>Pick User</option>
+          </select>
+        </th>
+        <th>
+          PRODUCT:<select id="products">
+            <option value="value" selected>Pick Product</option>
+          </select>
+        </th>
+        <th>DATE: <input type="date" id="date" placeholder="dd-mm-yyyy" /></th>
+      </tr>
+      <tr id="tr"></tr>
+    </table>
+    <button id="SearchBtn">SEARCH</button>
+
+
+    <script>
+      async function getData() {
+        // _______________________________________________________Purchases_REGION_1:
+        // get all Purchases:
+        const purchresp = await fetch(`http://127.0.0.1:5000/purchases`);
+        const Purchases = await purchresp.json();
+        
+        // get customers & product DATA:
+        const Cresp = await fetch(`http://127.0.0.1:5000/customers`);
+        const customers = await Cresp.json();
+
+        const Presp = await fetch(`http://127.0.0.1:5000/products`);
+        const products = await Presp.json();
+
+        const SearchBtn = document.getElementById("SearchBtn");
+
+        const usersSelect = document.getElementById("users");
+        const productsSelect = document.getElementById("products");
+        const DateInp = document.getElementById("date");
+
+
+        customers.forEach((u) => {
+          const nameOp = document.createElement("option");
+          nameOp.innerText = u.First_Name;
+          usersSelect.appendChild(nameOp);
+        });
+
+        products.forEach((p) => {
+          const nameOp = document.createElement("option");
+          nameOp.innerText = p.Name;
+          productsSelect.appendChild(nameOp);
+        });
+        // _______________________________________________________Purchases_REGION_2:
+        // 'getPurchases' button function:
+        SearchBtn.onclick = async () => {
+          const tbl = document.getElementById("table");
+          const tr = document.getElementById("tr");
+
+          tr.innerText = null;
+          tr.innerText = [];
+
+          // ____________________________USER__SEARCH:
+          // Filter the user ID by its name:
+          let uId = customers.filter((u) =>
+            u.First_Name == usersSelect.value ? u.ID : null
+          );
+          
+          if (uId.length != 0) {
+            uId = uId[0].ID;
+            // Get all of the selectade user purchases-products:
+            const midData = await fetch(
+              `http://127.0.0.1:5000/purchases/customer/${uId}`
+            );
+            const purchasesC = await midData.json();
+            const productIdArr = purchasesC.map((p) => p.productID);
+
+            const tdUser = document.createElement("td");
+
+            productIdArr.forEach((P) => {
+              const product = products.filter((p) => (p.ID == P ? p : null));
+              const liName = document.createElement("li");
+
+              liName.innerText = product[0].Name;
+
+              tdUser.appendChild(liName);
+            });
+            tr.appendChild(tdUser);
+            
+
+          }else{
+            const tdUser = document.createElement("td");
+            tdUser.innerText = 'Please select a User name from the above'
+            tr.appendChild(tdUser);
+            
+
+          }
+
+          // ____________________________PRODUCT__SEARCH:
+          // Filter the product ID by its name:
+          let pId = products.filter((p) =>
+            p.Name == productsSelect.value ? p.ID : null
+          );
+
+          pId.length==0? pId = null:pId = pId[0].ID
+          if (pId != null) {
+            // Get all of the selectade user purchases-products:
+            const midData = await fetch(
+              `http://127.0.0.1:5000/purchases/product/${pId}`
+            );
+            const purchasesP = await midData.json();
+            const customerIdArr = purchasesP.map((p) => p.customerID);
+
+            const tdproduct= document.createElement("td");
+            const ol= document.createElement("ol");
+
+            customerIdArr.forEach((C) => {
+              const customer = customers.filter((c) => (c.ID == C ? c : null));
+              const li = document.createElement("li");
+              li.innerText = customer[0].First_Name;
+
+              ol.appendChild(li);
+              tdproduct.appendChild(ol);
+            });
+            tr.appendChild(tdproduct);
+            
+          }else{
+            const tdproduct = document.createElement("td");
+            tdproduct.innerText = 'Please select Product name from the above'
+            tr.appendChild(tdproduct);
+            
+            
+          }
+          // ____________________________DATE_purchases_SEARCH:
+          // {Date: '01/11/2022', ID: 1, customerID: 2, productID: 2}
+          if(DateInp.value != ''){
+            const purchTd = document.createElement('td')
+
+              Purchases.forEach((P)=>{
+                
+                if (DateInp.value == P.Date) {
+
+
+              const user = document.createElement('span')
+              const product = document.createElement('span')
+              const date = document.createElement('span')
+
+              user.innerText = `User name:${P.customerID}, `
+              product.innerText = `User name:${P.Date}, `
+              date.innerText =`User name:${P.productID}, `
+              // console.log(P);
+              
+              
+              purchTd.appendChild(user);
+              purchTd.appendChild(product);
+              purchTd.appendChild(date);
+            }else{
+                  // console.log("fafaaf");
+                }
+            })
+            tr.appendChild(purchTd);
+          }else{
+            const tdPurch = document.createElement("td");
+            tdPurch.innerText = 'Please select Date name from the above'
+            tr.appendChild(tdPurch);
+            
+            
+          }
+          
+          tbl.appendChild(tr);
+
+        };
+      }
+    </script>
+  </body>
+</html>
